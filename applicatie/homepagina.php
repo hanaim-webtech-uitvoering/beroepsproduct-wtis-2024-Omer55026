@@ -169,6 +169,7 @@ while ($rij = $data->fetch(PDO::FETCH_ASSOC)) {
         <h1>Onze Pizzas</h1>
         <div class="buttons">
             <a href="inlogpagina.php">Inloggen</a>
+            <a href="registratie.php">Registreren</a>
             <i class="fas fa-shopping-cart cart-icon" onclick="toggleCart()"></i>
         </div>
     </div>

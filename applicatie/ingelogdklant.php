@@ -62,5 +62,9 @@ if (isset($_POST['confirm_order'])) {
     <form method="POST">
         <input type="submit" name="confirm_order" value="Bevestig Bestelling">
     </form>
+
+    <form method="POST" action="logout.php">
+                <input type="submit" class="logout-button" value="Uitloggen">
+            </form>
 </body>
 </html>
