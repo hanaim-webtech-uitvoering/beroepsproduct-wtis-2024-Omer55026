@@ -1,4 +1,5 @@
 <?php
+session_start();
 require_once 'db_connectie.php';
 
 // Maak verbinding met de database
@@ -10,15 +11,23 @@ $data = $db->query($query);
 
 $product_cards = '';
 
+// Tel het aantal producten in het winkelmandje
+$cart_count = isset($_SESSION['cart']) ? count($_SESSION['cart']) : 0;
+
 while ($rij = $data->fetch(PDO::FETCH_ASSOC)) {
     $name = htmlspecialchars($rij['name']);
     $price = htmlspecialchars($rij['price']);
 
     $product_cards .= "
-    <div class='product-card' onclick='addToCart(\"$name\", \"$price\")'>
+    <div class='product-card'>
         <h3 class='product-name'>$name</h3>
         <p class='product-price'>€$price</p>
-        <button class='order-button'>Bestel nu</button>
+        <form action='winkelmandje.php' method='POST'>
+            <input type='hidden' name='name' value='$name'>
+            <input type='hidden' name='price' value='$price'>
+            <input type='hidden' name='action' value='add'>
+            <button type='submit' class='order-button'>Bestel nu</button>
+        </form>
     </div>";
 }
 ?>
@@ -26,7 +35,6 @@ while ($rij = $data->fetch(PDO::FETCH_ASSOC)) {
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
@@ -34,11 +42,14 @@ while ($rij = $data->fetch(PDO::FETCH_ASSOC)) {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
             background-color: #f8f8f8;
         }
         .banner {
             background-color: #4CAF50;
-            height: 150px; /* Verlaagde hoogte */
+            height: 150px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -47,7 +58,6 @@ while ($rij = $data->fetch(PDO::FETCH_ASSOC)) {
             font-size: 2em;
         }
         .header {
-            position: relative; /* Nodig voor positionering van de knoppen */
             display: flex;
             align-items: center;
             padding: 10px 20px;
@@ -56,13 +66,9 @@ while ($rij = $data->fetch(PDO::FETCH_ASSOC)) {
         }
         .header h1 {
             margin: 0;
-            flex-grow: 1; /* Zorgt ervoor dat de titel ruimte inneemt */
+            flex-grow: 1;
         }
         .buttons {
-            position: absolute;
-            right: 20px; /* Plaats de knoppen rechtsboven */
-            top: 50%;
-            transform: translateY(-50%); /* Centreer verticaal in de header */
             display: flex;
             align-items: center;
         }
@@ -79,26 +85,34 @@ while ($rij = $data->fetch(PDO::FETCH_ASSOC)) {
         }
         .cart-icon {
             font-size: 24px;
-            cursor: pointer;
             color: white;
             margin-left: 20px;
+            position: relative;
+        }
+        .cart-count {
+            position: absolute;
+            top: -5px;
+            right: -10px;
+            background-color: red;
+            color: white;
+            border-radius: 50%;
+            padding: 5px 10px;
+            font-size: 12px;
         }
         .products {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
             padding: 20px;
+            flex-grow: 1;
         }
         .product-card {
             background-color: white;
             border: 1px solid #ddd;
             border-radius: 5px;
-            margin: 10px;
             padding: 10px;
             text-align: center;
-            width: 200px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            cursor: pointer;
         }
         .product-name {
             font-size: 1.2em;
@@ -121,42 +135,23 @@ while ($rij = $data->fetch(PDO::FETCH_ASSOC)) {
         .order-button:hover {
             background-color: #45a049;
         }
-        .cart-popup {
-            position: fixed;
-            right: 20px;
-            top: 100px;
-            width: 300px;
-            background-color: white;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-            padding: 15px;
-            display: none;
-            z-index: 1000;
-        }
-        .cart-popup h2 {
-            margin-top: 0;
-        }
-        .cart-item {
-            margin: 5px 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .remove-button {
-            background-color: red;
+        .footer {
+            background-color: #4CAF50;
             color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            padding: 5px 10px;
+            text-align: center;
+            padding: 20px 0;
+            width: 100%;
         }
-        .remove-button:hover {
-            background-color: darkred;
+        .footer-links {
+            margin: 10px 0;
         }
-        .total-price {
-            font-weight: bold;
-            margin-top: 10px;
+        .footer-links a {
+            color: white;
+            text-decoration: none;
+            margin: 0 15px;
+        }
+        .footer-links a:hover {
+            text-decoration: underline;
         }
     </style>
     <title>Home - Pizzeria Sole Machina</title>
@@ -166,72 +161,29 @@ while ($rij = $data->fetch(PDO::FETCH_ASSOC)) {
         Welkom bij Pizzeria Sole Machina
     </div>
     <div class="header">
-        <h1>Onze Pizzas</h1>
+        <h1>Menukaart</h1>
         <div class="buttons">
             <a href="inlogpagina.php">Inloggen</a>
             <a href="registratie.php">Registreren</a>
-            <i class="fas fa-shopping-cart cart-icon" onclick="toggleCart()"></i>
+            <a href="winkelmandje.php" class="cart-icon">
+                <i class="fas fa-shopping-cart"></i>
+                <?php if ($cart_count > 0): ?>
+                    <span class="cart-count"><?php echo $cart_count; ?></span>
+                <?php endif; ?>
+            </a>
         </div>
     </div>
     <div class="products">
         <?php echo $product_cards; ?>
     </div>
-
-    <!-- Winkelmandje Popup -->
-    <div class="cart-popup" id="cartPopup">
-        <h2>Winkelmandje</h2>
-        <div id="cartItems"></div>
-        <p class="total-price" id="totalPrice">Totaal: €0.00</p>
-        <button onclick="closeCart()">Sluiten</button>
+    <div class="footer">
+        <div class="footer-links">
+            <a href="#">Wie zijn wij</a>
+            <a href="#">Vacatures</a>
+            <a href="#">Betalen</a>
+            <a href="#">Voorwaarden</a>
+        </div>
+        &copy; 2023 Pizzeria Sole Machina. Alle rechten voorbehouden.
     </div>
-
-    <script>
-        let cart = [];
-
-        function addToCart(name, price) {
-            cart.push({ name: name, price: parseFloat(price) });
-            updateCart();
-            document.getElementById('cartPopup').style.display = 'block';
-        }
-
-        function updateCart() {
-            const cartItemsDiv = document.getElementById('cartItems');
-            cartItemsDiv.innerHTML = '';
-            let total = 0;
-
-            cart.forEach((item, index) => {
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'cart-item';
-                itemDiv.innerText = `${item.name} - €${item.price.toFixed(2)}`;
-                
-                const removeButton = document.createElement('button');
-                removeButton.className = 'remove-button';
-                removeButton.innerText = 'Verwijder';
-                removeButton.onclick = function() {
-                    removeFromCart(index);
-                };
-
-                itemDiv.appendChild(removeButton);
-                cartItemsDiv.appendChild(itemDiv);
-                total += item.price;
-            });
-
-            document.getElementById('totalPrice').innerText = `Totaal: €${total.toFixed(2)}`;
-        }
-
-        function removeFromCart(index) {
-            cart.splice(index, 1);
-            updateCart();
-        }
-
-        function closeCart() {
-            document.getElementById('cartPopup').style.display = 'none';
-        }
-
-        function toggleCart() {
-            const cartPopup = document.getElementById('cartPopup');
-            cartPopup.style.display = cartPopup.style.display === 'block' ? 'none' : 'block';
-        }
-    </script>
 </body>
 </html>
