@@ -24,7 +24,7 @@ while ($rij = $data->fetch(PDO::FETCH_ASSOC)) {
         <h3 class='product-name'>$name</h3>
         <p class='product-price'>€$price</p>
         <form action='' method='POST'>
-            <input type='hidden' name='item_id' value='$type_id'>
+            <input type='hidden' name='item_id' value='$name'> <!-- Change type_id to name -->
             <button type='submit' class='order-button'>Voeg toe aan bestelling</button>
         </form>
     </div>";
@@ -41,10 +41,68 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['item_id'])) {
 
 // Bestelling bevestigen
 if (isset($_POST['confirm_order'])) {
-    $item_ids = implode(',', $_SESSION['order_items']);
-    $stmt = $db->prepare("INSERT INTO orders (username, item_ids) VALUES (:username, :item_ids)");
-    $stmt->execute(['username' => $_SESSION['username'], 'item_ids' => $item_ids]);
-    unset($_SESSION['order_items']);
+
+    // Haal gebruikersinformatie
+
+    $username = $_SESSION['username'];
+
+    $full_name = htmlspecialchars($_SESSION['first_name'] . ' ' . $_SESSION['last_name']);
+
+    $address = isset($_SESSION['address']) ? htmlspecialchars($_SESSION['address']) : 'Onbekend'; // Default value
+
+    $personnel_username = 'rdeboer'; // Zorg ervoor dat deze waarde bestaat in de User tabel
+
+    $datetime = date('Y-m-d H:i:s');
+
+    $status = 0; // Assuming 0 is for 'pending'
+
+
+    // Insert order into Pizza_Order
+
+    $stmt = $db->prepare("INSERT INTO Pizza_Order (client_username, client_name, personnel_username, datetime, status, address) VALUES (:username, :client_name, :personnel_username, :datetime, :status, :address)");
+
+    try {
+
+        $stmt->execute([
+
+            'username' => $username,
+
+            'client_name' => $full_name,
+
+            'personnel_username' => $personnel_username,
+
+            'datetime' => $datetime,
+
+            'status' => $status,
+
+            'address' => $address
+
+        ]);
+
+    } catch (PDOException $e) {
+
+        // Handle error appropriately
+
+        echo "Fout bij het invoegen van de bestelling: " . $e->getMessage();
+
+        exit;
+
+    }
+
+    // Get the last inserted order ID
+    $order_id = $db->lastInsertId();
+
+    // Insert products into Pizza_Order_Product
+    foreach ($_SESSION['order_items'] as $item_name) {
+        $stmt = $db->prepare("INSERT INTO Pizza_Order_Product (order_id, product_name, quantity) VALUES (:order_id, :product_name, :quantity)");
+        $stmt->execute([
+            'order_id' => $order_id,
+            'product_name' => $item_name,
+            'quantity' => 1 // Assuming quantity is 1 for simplicity
+        ]);
+    }
+
+    unset($_SESSION['order_items']); // Clear the order items from session
     header('Location: ingelogdklant.php');
     exit;
 }
@@ -259,7 +317,7 @@ $full_name = isset($_SESSION['first_name']) && isset($_SESSION['last_name']) ?
             <a href="#">Betalen</a>
             <a href="#">Voorwaarden</a>
         </div>
-        &copy; 2023 Pizzeria Sole Machina. Alle rechten voorbehouden.
+        &copy; 2025 Pizzeria Sole Machina. Alle rechten voorbehouden.
     </div>
 </body>
 </html>
