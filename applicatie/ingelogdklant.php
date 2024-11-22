@@ -24,7 +24,7 @@ while ($rij = $data->fetch(PDO::FETCH_ASSOC)) {
         <h3 class='product-name'>$name</h3>
         <p class='product-price'>€$price</p>
         <form action='' method='POST'>
-            <input type='hidden' name='item_id' value='$name'> <!-- Change type_id to name -->
+            <input type='hidden' name='item_id' value='$name'>
             <button type='submit' class='order-button'>Voeg toe aan bestelling</button>
         </form>
     </div>";
@@ -33,9 +33,11 @@ while ($rij = $data->fetch(PDO::FETCH_ASSOC)) {
 // Voeg item toe aan de bestelling
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['item_id'])) {
     $item_ids = isset($_SESSION['order_items']) ? $_SESSION['order_items'] : [];
+    
     if (!in_array($_POST['item_id'], $item_ids)) {
         $item_ids[] = $_POST['item_id'];
     }
+
     $_SESSION['order_items'] = $item_ids;
 }
 
@@ -44,7 +46,7 @@ if (isset($_POST['confirm_order'])) {
     // Haal gebruikersinformatie
     $username = $_SESSION['username'];
     $full_name = htmlspecialchars($_SESSION['first_name'] . ' ' . $_SESSION['last_name']);
-    $address = isset($_SESSION['address']) ? htmlspecialchars($_SESSION['address']) : 'Onbekend'; // Default value
+    $address = isset($_POST['address']) ? htmlspecialchars($_POST['address']) : 'Onbekend'; // Haal het adres op
     $personnel_username = 'rdeboer'; // Zorg ervoor dat deze waarde bestaat in de User tabel
     $datetime = date('Y-m-d H:i:s');
     $status = 0; // Assuming 0 is for 'pending'
@@ -69,17 +71,21 @@ if (isset($_POST['confirm_order'])) {
     // Get the last inserted order ID
     $order_id = $db->lastInsertId();
 
-    // Insert products into Pizza_Order_Product
+    // Insert products into Pizza_Order_Product met hoeveelheden
     foreach ($_SESSION['order_items'] as $item_name) {
+        // Haal de hoeveelheid op uit de POST-gegevens
+        $quantity = isset($_POST['quantity'][$item_name]) ? (int)$_POST['quantity'][$item_name] : 1; // Standaard naar 1
         $stmt = $db->prepare("INSERT INTO Pizza_Order_Product (order_id, product_name, quantity) VALUES (:order_id, :product_name, :quantity)");
         $stmt->execute([
             'order_id' => $order_id,
             'product_name' => $item_name,
-            'quantity' => 1 // Assuming quantity is 1 for simplicity
+            'quantity' => $quantity
         ]);
     }
 
-    unset($_SESSION['order_items']); // Clear the order items from session
+    // Leeg de sessievariabelen
+    unset($_SESSION['order_items']); 
+    unset($_SESSION['order_quantities']); // Clear the quantities from session
     header('Location: ingelogdklant.php');
     exit;
 }
@@ -296,26 +302,28 @@ $orders = $orderHistory->getOrders();
 
     <div class="order-summary">
         <h2>Bestelling</h2>
-        <ul>
-            <?php if (isset($_SESSION['order_items']) && !empty($_SESSION['order_items'])): ?>
-                <?php foreach ($_SESSION['order_items'] as $id): ?>
-                    <li>
-                        Product: <?php echo htmlspecialchars($id); ?>
-                        <form action="" method="POST" style="display:inline;">
+        <form method="POST">
+            <ul>
+                <?php if (isset($_SESSION['order_items']) && !empty($_SESSION['order_items'])): ?>
+                    <?php foreach ($_SESSION['order_items'] as $id): ?>
+                        <li>
+                            Product: <?php echo htmlspecialchars($id); ?>
+                            <label for="quantity_<?php echo htmlspecialchars($id); ?>">Aantal:</label>
+                            <input type="number" name="quantity[<?php echo htmlspecialchars($id); ?>]" id="quantity_<?php echo htmlspecialchars($id); ?>" min="1" value="<?php echo $_SESSION['order_quantities'][$id] ?? 1; ?>" style="width: 50px;">
                             <input type="hidden" name="remove_item_id" value="<?php echo htmlspecialchars($id); ?>">
-                            <button type="submit" class="remove-button">Verwijder</button>
-                        </form>
-                    </li>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <li>Geen items in je bestelling.</li>
-            <?php endif; ?>
-        </ul>
-        <?php if (isset($_SESSION['order_items']) && !empty($_SESSION['order_items'])): ?>
-            <form method="POST">
+                            <button type="submit" class="remove-button" name="remove">Verwijder</button>
+                        </li>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <li>Geen items in je bestelling.</li>
+                <?php endif; ?>
+            </ul>
+            <?php if (isset($_SESSION['order_items']) && !empty($_SESSION['order_items'])): ?>
+                <label for="address">Afleveradres:</label>
+                <input type="text" name="address" id="address" required>
                 <input type="submit" name="confirm_order" value="Bevestig Bestelling" class="order-button">
-            </form>
-        <?php endif; ?>
+            <?php endif; ?>
+        </form>
     </div>
 
     <!-- Bestelgeschiedenis sectie -->
@@ -325,7 +333,7 @@ $orders = $orderHistory->getOrders();
             <table>
                 <thead>
                     <tr>
-                        <th>Bestellingsnummer</th>
+                        <th>Bestelling ID</th>
                         <th>Datum</th>
                         <th>Status</th>
                         <th>Adres</th>
