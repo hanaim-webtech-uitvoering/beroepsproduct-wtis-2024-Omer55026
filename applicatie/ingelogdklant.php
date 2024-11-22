@@ -41,52 +41,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['item_id'])) {
 
 // Bestelling bevestigen
 if (isset($_POST['confirm_order'])) {
-
     // Haal gebruikersinformatie
-
     $username = $_SESSION['username'];
-
     $full_name = htmlspecialchars($_SESSION['first_name'] . ' ' . $_SESSION['last_name']);
-
     $address = isset($_SESSION['address']) ? htmlspecialchars($_SESSION['address']) : 'Onbekend'; // Default value
-
     $personnel_username = 'rdeboer'; // Zorg ervoor dat deze waarde bestaat in de User tabel
-
     $datetime = date('Y-m-d H:i:s');
-
     $status = 0; // Assuming 0 is for 'pending'
 
-
     // Insert order into Pizza_Order
-
     $stmt = $db->prepare("INSERT INTO Pizza_Order (client_username, client_name, personnel_username, datetime, status, address) VALUES (:username, :client_name, :personnel_username, :datetime, :status, :address)");
-
+    
     try {
-
         $stmt->execute([
-
             'username' => $username,
-
             'client_name' => $full_name,
-
             'personnel_username' => $personnel_username,
-
             'datetime' => $datetime,
-
             'status' => $status,
-
             'address' => $address
-
         ]);
-
     } catch (PDOException $e) {
-
-        // Handle error appropriately
-
         echo "Fout bij het invoegen van de bestelling: " . $e->getMessage();
-
         exit;
-
     }
 
     // Get the last inserted order ID
@@ -119,6 +96,32 @@ if (isset($_POST['remove_item_id'])) {
 // Haal de naam en achternaam van de ingelogde gebruiker
 $full_name = isset($_SESSION['first_name']) && isset($_SESSION['last_name']) ? 
     htmlspecialchars($_SESSION['first_name'] . ' ' . $_SESSION['last_name']) : 'Gast';
+
+// Haal bestelgeschiedenis op
+class OrderHistory {
+    private $db;
+    private $username;
+
+    public function __construct($db, $username) {
+        $this->db = $db;
+        $this->username = $username;
+    }
+
+    public function getOrders() {
+        $query = $this->db->prepare("SELECT * FROM Pizza_Order WHERE client_username = :username ORDER BY datetime DESC");
+        $query->execute(['username' => $this->username]);
+        return $query->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getOrderProducts($order_id) {
+        $stmt = $this->db->prepare("SELECT product_name, quantity FROM Pizza_Order_Product WHERE order_id = :order_id");
+        $stmt->execute(['order_id' => $order_id]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+}
+
+$orderHistory = new OrderHistory($db, $_SESSION['username']);
+$orders = $orderHistory->getOrders();
 ?>
 
 <!DOCTYPE html>
@@ -177,22 +180,6 @@ $full_name = isset($_SESSION['first_name']) && isset($_SESSION['last_name']) ?
         }
         .buttons a:hover {
             background-color: #ddd;
-        }
-        .cart-icon {
-            font-size: 24px;
-            color: white;
-            margin-left: 20px;
-            position: relative;
-        }
-        .cart-count {
-            position: absolute;
-            top: -5px;
-            right: -10px;
-            background-color: red;
-            color: white;
-            border-radius: 50%;
-            padding: 5px 10px;
-            font-size: 12px;
         }
         .products {
             display: grid;
@@ -268,6 +255,27 @@ $full_name = isset($_SESSION['first_name']) && isset($_SESSION['last_name']) ?
         .remove-button:hover {
             background-color: #d32f2f;
         }
+        .order-history {
+            padding: 20px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
     </style>
     <title>Ingelogd als Klant - Pizzeria Sole Machina</title>
 </head>
@@ -307,6 +315,48 @@ $full_name = isset($_SESSION['first_name']) && isset($_SESSION['last_name']) ?
             <form method="POST">
                 <input type="submit" name="confirm_order" value="Bevestig Bestelling" class="order-button">
             </form>
+        <?php endif; ?>
+    </div>
+
+    <!-- Bestelgeschiedenis sectie -->
+    <div class="order-history">
+        <h2>Bestelgeschiedenis</h2>
+        <?php if ($orders): ?>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Bestellingsnummer</th>
+                        <th>Datum</th>
+                        <th>Status</th>
+                        <th>Adres</th>
+                        <th>Producten</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($orders as $order): ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($order['order_id']); ?></td>
+                            <td><?php echo htmlspecialchars($order['datetime']); ?></td>
+                            <td><?php echo htmlspecialchars($order['status']); ?></td>
+                            <td><?php echo htmlspecialchars($order['address']); ?></td>
+                            <td>
+                                <ul>
+                                    <?php
+                                    // Haal de producten voor deze bestelling op
+                                    $order_id = $order['order_id'];
+                                    $products = $orderHistory->getOrderProducts($order_id);
+                                    foreach ($products as $product):
+                                    ?>
+                                        <li><?php echo htmlspecialchars($product['product_name']) . ' (Aantal: ' . htmlspecialchars($product['quantity']) . ')'; ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php else: ?>
+            <p>Geen eerdere bestellingen gevonden.</p>
         <?php endif; ?>
     </div>
 
