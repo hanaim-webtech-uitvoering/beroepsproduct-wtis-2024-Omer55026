@@ -1,6 +1,5 @@
 <?php
 session_start();
-
 require_once 'db_connectie.php';
 
 // Controleer of de gebruiker is ingelogd en de juiste rol heeft
@@ -70,25 +69,38 @@ $products = $db->query("SELECT name FROM Product")->fetchAll(PDO::FETCH_COLUMN);
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
             background-color: #f4f4f4;
         }
-        h1, h2 {
-            color: #333;
+        .banner {
+            background-color: #4CAF50;
+            height: 150px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+            font-size: 2em;
         }
-        ul {
-            list-style-type: none;
-            padding: 0;
+        .header {
+            display: flex;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
         }
-        li {
-            background: #fff;
-            margin: 10px 0;
-            padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        .header h1 {
+            margin: 0;
+            flex-grow: 1;
         }
-        form {
-            display: inline;
+        .user-info {
+            color: white;
+            margin-right: 20px;
+            font-weight: bold;
         }
         .logout-button {
             margin-top: 20px;
@@ -99,28 +111,64 @@ $products = $db->query("SELECT name FROM Product")->fetchAll(PDO::FETCH_COLUMN);
             border-radius: 5px;
             cursor: pointer;
         }
+        .order-list {
+            margin: 20px;
+            padding: 10px;
+            background: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .order-item {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
         .add-product-form {
-            margin-top: 20px;
+            margin-top: 10px;
             padding: 10px;
             background: #e7f3fe;
             border: 1px solid #b3c7e6;
             border-radius: 5px;
         }
+        .footer {
+            background-color: #4CAF50;
+            color: white;
+            text-align: center;
+            padding: 20px 0;
+            width: 100%;
+            margin-top: auto;
+        }
+        .footer-links {
+            margin: 10px 0;
+        }
+        .footer-links a {
+            color: white;
+            text-decoration: none;
+            margin: 0 15px;
+        }
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
-    <h1>Welkom, <?php echo htmlspecialchars($_SESSION['first_name']); ?>!</h1>
-    <h2>Actieve Bestellingen</h2>
-    <form method="POST" action="logout.php">
-        <input type="submit" class="logout-button" value="Uitloggen">
-    </form>
-    <ul>
+    <div class="banner">
+        Welkom bij Pizzeria Sole Machina
+    </div>
+    <div class="header">
+        <h1>Actieve Bestellingen</h1>
+        <div class="user-info">Ingelogd als: <?php echo htmlspecialchars($_SESSION['first_name']); ?></div>
+    </div>
+
+    <div class="order-list">
         <?php foreach ($active_orders as $order): ?>
-            <li>
-                Bestelling ID: <?php echo htmlspecialchars($order['order_id']); ?> - 
-                Klant: <?php echo htmlspecialchars($order['client_name']); ?> - 
-                Datum: <?php echo htmlspecialchars($order['datetime']); ?> - 
-                Adres: <?php echo htmlspecialchars($order['address']); ?> - 
+            <div class="order-item">
+                <strong>Bestelling ID:</strong> <?php echo htmlspecialchars($order['order_id']); ?><br>
+                <strong>Klant:</strong> <?php echo htmlspecialchars($order['client_name']); ?><br>
+                <strong>Datum:</strong> <?php echo htmlspecialchars($order['datetime']); ?><br>
+                <strong>Adres:</strong> <?php echo htmlspecialchars($order['address']); ?><br>
+                <strong>Status:</strong> <?php echo htmlspecialchars($order['status']); ?><br>
                 
                 <ul>
                     <?php if (isset($order['product_name'])): ?>
@@ -129,19 +177,22 @@ $products = $db->query("SELECT name FROM Product")->fetchAll(PDO::FETCH_COLUMN);
                         <li>Geen producten in deze bestelling.</li>
                     <?php endif; ?>
                 </ul>
-                <form method="POST" style="display:inline;">
+                
+                <form method="POST" action="" style="margin-top: 10px;">
                     <input type="hidden" name="order_id" value="<?php echo htmlspecialchars($order['order_id']); ?>">
-                    <select name="status">
+                    <select name="status" required>
                         <option value="1" <?php echo $order['status'] == 1 ? 'selected' : ''; ?>>Voorbereiden</option>
                         <option value="2" <?php echo $order['status'] == 2 ? 'selected' : ''; ?>>Voltooid</option>
                     </select>
                     <input type="submit" value="Wijzig Status">
                 </form>
-                <form method="POST" action="" style="display:inline;">
+
+                <form method="POST" action="" style="margin-top: 10px;">
                     <input type="hidden" name="order_id" value="<?php echo htmlspecialchars($order['order_id']); ?>">
                     <input type="hidden" name="product_id" value="<?php echo htmlspecialchars($order['product_name'] ?? ''); ?>">
                     <input type="submit" name="remove_product" value="Verwijder Product">
                 </form>
+
                 <div class="add-product-form">
                     <h3>Voeg Product Toe</h3>
                     <form method="POST">
@@ -155,11 +206,18 @@ $products = $db->query("SELECT name FROM Product")->fetchAll(PDO::FETCH_COLUMN);
                         <input type="submit" name="add_product" value="Toevoegen">
                     </form>
                 </div>
-            </li>
+            </div>
         <?php endforeach; ?>
-    </ul>
-    <form method="POST" action="logout.php">
-        <input type="submit" class="logout-button" value="Uitloggen">
-    </form>
+    </div>
+
+    <div class="footer">
+        <div class="footer-links">
+            <a href="#">Wie zijn wij</a>
+            <a href="#">Vacatures</a>
+            <a href="#">Betalen</a>
+            <a href="#">Voorwaarden</a>
+        </div>
+        &copy; 2025 Pizzeria Sole Machina. Alle rechten voorbehouden.
+    </div>
 </body>
 </html>

@@ -283,7 +283,7 @@ $orders = $orderHistory->getOrders();
             color: white;
         }
     </style>
-    <title>Ingelogd als Klant - Pizzeria Sole Machina</title>
+    <title><?php echo $full_name; ?> Pizzeria Sole Machina</title>
 </head>
 <body>
     <div class="banner">
