@@ -10,12 +10,29 @@ if (!isset($_SESSION['username']) || $_SESSION['role'] !== 'Personnel') {
 
 $db = maakVerbinding();
 
-// Haal actieve bestellingen op met details
-$active_orders = $db->query("
-    SELECT o.order_id, o.client_name, o.datetime, o.status, o.address, op.quantity, op.product_name
-    FROM Pizza_Order o
-    LEFT JOIN Pizza_Order_Product op ON o.order_id = op.order_id
-")->fetchAll(PDO::FETCH_ASSOC);
+// Voorbereiding voor zoekopdracht
+$search_query = '';
+if (isset($_POST['search'])) {
+    $search_query = $_POST['search'];
+}
+
+// Haal actieve bestellingen op met details, zoek alleen op bestelling ID
+$active_orders = [];
+if ($search_query !== '') {
+    $stmt = $db->prepare("
+        SELECT o.order_id, o.client_name, o.datetime, o.status, o.address
+        FROM Pizza_Order o
+        WHERE o.order_id = :search
+    ");
+    $stmt->execute(['search' => $search_query]);
+    $active_orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} else {
+    // Als er geen zoekopdracht is, haal dan alle actieve bestellingen op
+    $active_orders = $db->query("
+        SELECT o.order_id, o.client_name, o.datetime, o.status, o.address
+        FROM Pizza_Order o
+    ")->fetchAll(PDO::FETCH_ASSOC);
+}
 
 // Verwerk statuswijziging van een bestelling
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['order_id'])) {
@@ -29,35 +46,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['order_id'])) {
     exit;
 }
 
-// Verwerk het toevoegen van een nieuw product aan een bestelling
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
-    $order_id = $_POST['order_id'];
-    $product_name = $_POST['product_name'];
-    $quantity = $_POST['quantity'];
-
-    // Controleer of productnaam en hoeveelheid zijn ingevuld en geldig zijn
-    if (!empty($product_name) && is_numeric($quantity) && $quantity > 0) {
-        $stmt = $db->prepare("INSERT INTO Pizza_Order_Product (order_id, product_name, quantity) VALUES (:order_id, :product_name, :quantity)");
-        $stmt->execute(['order_id' => $order_id, 'product_name' => $product_name, 'quantity' => $quantity]);
-    }
-
-    header('Location: ingelogdpersoneel.php'); // Herlaad de pagina na het toevoegen van een product
-    exit;
+// Haal de producten op voor de bestellingen
+$order_products = [];
+foreach ($active_orders as $order) {
+    $stmt = $db->prepare("SELECT product_name, quantity FROM Pizza_Order_Product WHERE order_id = :order_id");
+    $stmt->execute(['order_id' => $order['order_id']]);
+    $order_products[$order['order_id']] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
-
-// Verwerk het verwijderen van een product uit een bestelling
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['remove_product'])) {
-    $product_id = $_POST['product_id'];
-
-    $stmt = $db->prepare("DELETE FROM Pizza_Order_Product WHERE id = :id");
-    $stmt->execute(['id' => $product_id]);
-
-    header('Location: ingelogdpersoneel.php'); // Herlaad de pagina na het verwijderen van een product
-    exit;
-}
-
-// Haal beschikbare producten op voor het toevoegen
-$products = $db->query("SELECT name FROM Product")->fetchAll(PDO::FETCH_COLUMN);
 ?>
 
 <!DOCTYPE html>
@@ -86,6 +81,10 @@ $products = $db->query("SELECT name FROM Product")->fetchAll(PDO::FETCH_COLUMN);
             text-align: center;
             font-size: 2em;
         }
+        .buttons {
+            display: flex;
+            align-items: center;
+        }
         .header {
             display: flex;
             align-items: center;
@@ -103,33 +102,32 @@ $products = $db->query("SELECT name FROM Product")->fetchAll(PDO::FETCH_COLUMN);
             font-weight: bold;
         }
         .logout-button {
-            margin-top: 20px;
-            padding: 10px 20px;
-            background-color: #d9534f;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
+            margin-left: 10px;
         }
-        .order-list {
+        .search-bar {
+            margin: 20px 0;
+            text-align: center;
+        }
+        .order-table {
             margin: 20px;
             padding: 10px;
             background: #fff;
             border-radius: 5px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            width: calc(100% - 40px); /* Full width minus margins */
         }
-        .order-item {
-            margin: 10px 0;
-            padding: 10px;
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
             border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-        .add-product-form {
-            margin-top: 10px;
             padding: 10px;
-            background: #e7f3fe;
-            border: 1px solid #b3c7e6;
-            border-radius: 5px;
+            text-align: left;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
         }
         .footer {
             background-color: #4CAF50;
@@ -159,55 +157,60 @@ $products = $db->query("SELECT name FROM Product")->fetchAll(PDO::FETCH_COLUMN);
     <div class="header">
         <h1>Actieve Bestellingen</h1>
         <div class="user-info">Ingelogd als: <?php echo htmlspecialchars($_SESSION['first_name']); ?></div>
+        <div class="buttons">
+            <a href="logout.php">Uitloggen</a>
+        </div>
     </div>
 
-    <div class="order-list">
-        <?php foreach ($active_orders as $order): ?>
-            <div class="order-item">
-                <strong>Bestelling ID:</strong> <?php echo htmlspecialchars($order['order_id']); ?><br>
-                <strong>Klant:</strong> <?php echo htmlspecialchars($order['client_name']); ?><br>
-                <strong>Datum:</strong> <?php echo htmlspecialchars($order['datetime']); ?><br>
-                <strong>Adres:</strong> <?php echo htmlspecialchars($order['address']); ?><br>
-                <strong>Status:</strong> <?php echo htmlspecialchars($order['status']); ?><br>
-                
-                <ul>
-                    <?php if (isset($order['product_name'])): ?>
-                        <li>Product: <?php echo htmlspecialchars($order['product_name']); ?> - Hoeveelheid: <?php echo htmlspecialchars($order['quantity']); ?></li>
-                    <?php else: ?>
-                        <li>Geen producten in deze bestelling.</li>
-                    <?php endif; ?>
-                </ul>
-                
-                <form method="POST" action="" style="margin-top: 10px;">
-                    <input type="hidden" name="order_id" value="<?php echo htmlspecialchars($order['order_id']); ?>">
-                    <select name="status" required>
-                        <option value="1" <?php echo $order['status'] == 1 ? 'selected' : ''; ?>>Voorbereiden</option>
-                        <option value="2" <?php echo $order['status'] == 2 ? 'selected' : ''; ?>>Voltooid</option>
-                    </select>
-                    <input type="submit" value="Wijzig Status">
-                </form>
+    <div class="search-bar">
+        <form method="POST" action="">
+            <input type="text" name="search" placeholder="Zoek op bestelling ID" value="<?php echo htmlspecialchars($search_query); ?>">
+            <input type="submit" value="Zoek">
+        </form>
+    </div>
 
-                <form method="POST" action="" style="margin-top: 10px;">
-                    <input type="hidden" name="order_id" value="<?php echo htmlspecialchars($order['order_id']); ?>">
-                    <input type="hidden" name="product_id" value="<?php echo htmlspecialchars($order['product_name'] ?? ''); ?>">
-                    <input type="submit" name="remove_product" value="Verwijder Product">
-                </form>
-
-                <div class="add-product-form">
-                    <h3>Voeg Product Toe</h3>
-                    <form method="POST">
-                        <input type="hidden" name="order_id" value="<?php echo htmlspecialchars($order['order_id']); ?>">
-                        <select name="product_name" required>
-                            <?php foreach ($products as $product): ?>
-                                <option value="<?php echo htmlspecialchars($product); ?>"><?php echo htmlspecialchars($product); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                        <input type="number" name="quantity" placeholder="Hoeveelheid" required min="1">
-                        <input type="submit" name="add_product" value="Toevoegen">
-                    </form>
-                </div>
-            </div>
-        <?php endforeach; ?>
+    <div class="order-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Bestelling ID</th>
+                    <th>Klant</th>
+                    <th>Datum</th>
+                    <th>Status</th>
+                    <th>Adres</th>
+                    <th>Producten</th>
+                    <th>Acties</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($active_orders as $order): ?>
+                    <tr>
+                        <td><?php echo htmlspecialchars($order['order_id']); ?></td>
+                        <td><?php echo htmlspecialchars($order['client_name']); ?></td>
+                        <td><?php echo htmlspecialchars($order['datetime']); ?></td>
+                        <td><?php echo htmlspecialchars($order['status']); ?></td>
+                        <td><?php echo htmlspecialchars($order['address']); ?></td>
+                        <td>
+                            <ul>
+                                <?php foreach ($order_products[$order['order_id']] as $product): ?>
+                                    <li><?php echo htmlspecialchars($product['product_name']) . ' (Aantal: ' . htmlspecialchars($product['quantity']) . ')'; ?></li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </td>
+                        <td>
+                            <form method="POST" action="" style="display:inline;">
+                                <input type="hidden" name="order_id" value="<?php echo htmlspecialchars($order['order_id']); ?>">
+                                <select name="status" required>
+                                    <option value="1" <?php echo $order['status'] == 1 ? 'selected' : ''; ?>>Voorbereiden</option>
+                                    <option value="2" <?php echo $order['status'] == 2 ? 'selected' : ''; ?>>Voltooid</option>
+                                </select>
+                                <input type="submit" value="Wijzig Status">
+                            </form>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
     </div>
 
     <div class="footer">
