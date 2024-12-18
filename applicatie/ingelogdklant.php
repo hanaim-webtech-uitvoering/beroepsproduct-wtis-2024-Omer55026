@@ -124,6 +124,21 @@ class OrderHistory {
         $stmt->execute(['order_id' => $order_id]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    public function getStatusDescription($status) {
+        switch ($status) {
+            case 1:
+                return 'Voorbereiden';
+            case 2:
+                return 'Klaar voor bezorging';
+            case 3:
+                return 'Onderweg';
+            case 4:
+                return 'Bezorgd';
+            default:
+                return 'Bestelling ontvangen';
+        }
+    }
 }
 
 $orderHistory = new OrderHistory($db, $_SESSION['username']);
@@ -345,7 +360,7 @@ $orders = $orderHistory->getOrders();
                         <tr>
                             <td><?php echo htmlspecialchars($order['order_id']); ?></td>
                             <td><?php echo htmlspecialchars($order['datetime']); ?></td>
-                            <td><?php echo htmlspecialchars($order['status']); ?></td>
+                            <td><?php echo $orderHistory->getStatusDescription($order['status']); ?></td>
                             <td><?php echo htmlspecialchars($order['address']); ?></td>
                             <td>
                                 <ul>
