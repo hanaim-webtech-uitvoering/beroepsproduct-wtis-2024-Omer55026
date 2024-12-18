@@ -6,7 +6,7 @@ require_once 'db_connectie.php';
 $db = maakVerbinding();
 
 // Haal alle producten op zonder de 'image' kolom
-$query = 'SELECT name, price, type_id FROM Product'; 
+$query = 'SELECT p.name, p.price, p.type_id FROM Product p'; 
 $data = $db->query($query);
 
 $product_cards = '';
@@ -19,14 +19,29 @@ while ($rij = $data->fetch(PDO::FETCH_ASSOC)) {
     $price = htmlspecialchars($rij['price']);
     $type_id = htmlspecialchars($rij['type_id']);
 
+    // Haal de ingrediënten voor dit product op
+    $ingredients_query = $db->prepare("
+        SELECT i.name 
+        FROM Ingredient i 
+        JOIN Product_Ingredient pi ON i.name = pi.ingredient_name 
+        WHERE pi.product_name = :product_name
+    ");
+    $ingredients_query->execute(['product_name' => $name]);
+    $ingredients = $ingredients_query->fetchAll(PDO::FETCH_COLUMN);
+
+    // Maak een lijst van ingrediënten
+    $ingredients_list = implode(', ', array_map('htmlspecialchars', $ingredients));
+
     $product_cards .= "
     <div class='product-card'>
         <h3 class='product-name'>$name</h3>
         <p class='product-price'>€$price</p>
+        
         <form action='' method='POST'>
             <input type='hidden' name='item_id' value='$name'>
             <button type='submit' class='order-button'>Voeg toe aan bestelling</button>
         </form>
+        <p class='product-ingredients'><strong>Ingrediënten:</strong> $ingredients_list</p>
     </div>";
 }
 
@@ -136,7 +151,7 @@ class OrderHistory {
             case 4:
                 return 'Bezorgd';
             default:
-                return 'Bestelling ontvangen';
+                return 'Onbekend';
         }
     }
 }
@@ -225,6 +240,11 @@ $orders = $orderHistory->getOrders();
             font-size: 1.1em;
             color: #4CAF50;
             margin-bottom: 10px;
+        }
+        .product-ingredients {
+            font-size: 0.9em;
+            color: #555;
+            margin: 5px 0;
         }
         .order-button {
             padding: 10px;
@@ -388,7 +408,7 @@ $orders = $orderHistory->getOrders();
             <a href="#">Wie zijn wij</a>
             <a href="#">Vacatures</a>
             <a href="#">Betalen</a>
-            <a href="#">Voorwaarden</a>
+            <a href="privacy.php">Privacy</a>
         </div>
         &copy; 2025 Pizzeria Sole Machina. Alle rechten voorbehouden.
     </div>
