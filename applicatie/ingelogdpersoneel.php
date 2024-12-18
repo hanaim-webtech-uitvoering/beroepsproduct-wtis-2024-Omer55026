@@ -202,7 +202,9 @@ foreach ($active_orders as $order) {
                                 <input type="hidden" name="order_id" value="<?php echo htmlspecialchars($order['order_id']); ?>">
                                 <select name="status" required>
                                     <option value="1" <?php echo $order['status'] == 1 ? 'selected' : ''; ?>>Voorbereiden</option>
-                                    <option value="2" <?php echo $order['status'] == 2 ? 'selected' : ''; ?>>Voltooid</option>
+                                    <option value="2" <?php echo $order['status'] == 2 ? 'selected' : ''; ?>>Klaar voor bezorging</option>
+                                    <option value="3" <?php echo $order['status'] == 3 ? 'selected' : ''; ?>>Onderweg</option>
+                                    <option value="4" <?php echo $order['status'] == 4 ? 'selected' : ''; ?>>Bestelling is bezorgd</option>
                                 </select>
                                 <input type="submit" value="Wijzig Status">
                             </form>
