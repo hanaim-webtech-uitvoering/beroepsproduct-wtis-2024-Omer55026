@@ -3,12 +3,12 @@ session_start();
 require_once 'db_connectie.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = $_POST['username'];
-    $password = $_POST['password'];
+    $username = trim($_POST['username']);
+    $password = trim($_POST['password']);
 
     $db = maakVerbinding();
-    $stmt = $db->prepare('SELECT first_name, last_name, role FROM [User] WHERE username = :username AND password = :password');
-    $stmt->execute(['username' => $username, 'password' => $password]);
+    $stmt = $db->prepare('SELECT first_name, last_name, role, password FROM [User] WHERE username = :username');
+    $stmt->execute(['username' => $username]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($user) {
@@ -81,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="login-container">
         <h2>Inloggen</h2>
         <?php if (isset($error_message)): ?>
-            <div class="error"><?php echo $error_message; ?></div>
+            <div class="error"><?php echo htmlspecialchars($error_message); ?></div>
         <?php endif; ?>
         <form method="POST">
             <input type="text" name="username" placeholder="Gebruikersnaam" required>
