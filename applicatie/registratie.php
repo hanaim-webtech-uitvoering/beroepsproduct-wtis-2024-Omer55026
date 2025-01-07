@@ -41,13 +41,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'address' => $address,
             'role' => $role   
         ]);
-}
 
-        // Succesbericht
-        $_SESSION['success_message'] = 'Gebruiker succesvol aangemaakt! Je kunt nu inloggen.';
-        header('Location: inlogpagina.php');
+        // Succesbericht met link naar inlogpagina
+        $_SESSION['success_message'] = 'Gebruiker succesvol aangemaakt! Je kunt nu inloggen: <a href="inlogpagina.php">Inloggen</a>';
+        header('Location: registratie.php');
         exit;
     }
+}
 ?>
 
 <!DOCTYPE html>
@@ -96,6 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .success {
             color: green;
             text-align: center;
+            margin-bottom: 20px; /* Ruimte onder het succesbericht */
         }
         input[type="text"], input[type="password"] {
             width: 100%;
@@ -156,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="error"><?php echo htmlspecialchars(implode('<br>', $errors), ENT_QUOTES, 'UTF-8'); ?></div>
         <?php endif; ?>
         <?php if (isset($_SESSION['success_message'])): ?>
-            <div class="success"><?php echo htmlspecialchars($_SESSION['success_message'], ENT_QUOTES, 'UTF-8'); ?></div>
+            <div class="success"><?php echo $_SESSION['success_message']; ?></div>
             <?php unset($_SESSION['success_message']); ?>
         <?php endif; ?>
         <form method="POST">
