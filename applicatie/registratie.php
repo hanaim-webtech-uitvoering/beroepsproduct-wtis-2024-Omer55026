@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $db->prepare('INSERT INTO [User] (username, password, first_name, last_name, address, role) VALUES (:username, :password, :first_name, :last_name, :address, :role)');
         $stmt->execute([
             'username' => $username,
-            'password' => $hashed_password, // Gebruik de gehashte wachtwoord
+            'password' => $hashed_password, 
             'first_name' => $first_name,
             'last_name' => $last_name,
             'address' => $address,
