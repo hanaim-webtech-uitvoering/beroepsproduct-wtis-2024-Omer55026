@@ -220,7 +220,7 @@ foreach ($active_orders as $order) {
             <a href="#">Wie zijn wij</a>
             <a href="#">Vacatures</a>
             <a href="#">Betalen</a>
-            <a href="#">Voorwaarden</a>
+            <a href="privacy.php">Voorwaarden</a>
         </div>
         &copy; 2025 Pizzeria Sole Machina. Alle rechten voorbehouden.
     </div>

@@ -58,15 +58,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['item_id'])) {
 
 // Bestelling bevestigen
 if (isset($_POST['confirm_order'])) {
-    // Haal gebruikersinformatie
     $username = $_SESSION['username'];
     $full_name = htmlspecialchars($_SESSION['first_name'] . ' ' . $_SESSION['last_name']);
-    $address = isset($_POST['address']) ? htmlspecialchars($_POST['address']) : 'Onbekend'; // Haal het adres op
-    $personnel_username = 'rdeboer'; // Zorg ervoor dat deze waarde bestaat in de User tabel
+    $address = isset($_POST['address']) ? htmlspecialchars($_POST['address']) : 'Onbekend'; 
+    $personnel_username = 'rdeboer'; 
     $datetime = date('Y-m-d H:i:s');
-    $status = 0; // Assuming 0 is for 'pending'
+    $status = 1; 
 
-    // Insert order into Pizza_Order
     $stmt = $db->prepare("INSERT INTO Pizza_Order (client_username, client_name, personnel_username, datetime, status, address) VALUES (:username, :client_name, :personnel_username, :datetime, :status, :address)");
     
     try {

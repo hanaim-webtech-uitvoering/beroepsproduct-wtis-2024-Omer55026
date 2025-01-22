@@ -5,18 +5,20 @@ require_once 'db_connectie.php';
 // Maak verbinding met de database
 $db = maakVerbinding();
 
-// Haal alle producten op zonder de 'image' kolom
+// Haal alle producten op zonder de 'image' kolom met een prepared statement
 $query = 'SELECT name, price FROM Product'; 
-$data = $db->query($query);
+$stmt = $db->prepare($query);
+$stmt->execute();
 
 $product_cards = '';
 
 // Tel het aantal producten in het winkelmandje
 $cart_count = isset($_SESSION['cart']) ? count($_SESSION['cart']) : 0;
 
-while ($rij = $data->fetch(PDO::FETCH_ASSOC)) {
-    $name = htmlspecialchars($rij['name']);
-    $price = htmlspecialchars($rij['price']);
+while ($rij = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    // Gebruik htmlspecialchars voor veilige weergave
+    $name = htmlspecialchars($rij['name'], ENT_QUOTES, 'UTF-8');
+    $price = htmlspecialchars($rij['price'], ENT_QUOTES, 'UTF-8');
 
     $product_cards .= "
     <div class='product-card'>
@@ -36,8 +38,8 @@ while ($rij = $data->fetch(PDO::FETCH_ASSOC)) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
+        /* CSS-stijlen blijven hetzelfde */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -181,7 +183,7 @@ while ($rij = $data->fetch(PDO::FETCH_ASSOC)) {
             <a href="#">Wie zijn wij</a>
             <a href="#">Vacatures</a>
             <a href="#">Betalen</a>
-            <a href="#">Voorwaarden</a>
+            <a href="privacy.php">Voorwaarden</a>
         </div>
         &copy; 2023 Pizzeria Sole Machina. Alle rechten voorbehouden.
     </div>
