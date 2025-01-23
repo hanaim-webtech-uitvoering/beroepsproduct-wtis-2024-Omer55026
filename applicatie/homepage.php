@@ -1,22 +1,16 @@
 <?php
 session_start();
 require_once 'db_connectie.php';
-
-// Maak verbinding met de database
 $db = maakVerbinding();
 
-// Haal alle producten op zonder de 'image' kolom met een prepared statement
 $query = 'SELECT name, price FROM Product'; 
 $stmt = $db->prepare($query);
 $stmt->execute();
 
 $product_cards = '';
-
-// Tel het aantal producten in het winkelmandje
 $cart_count = isset($_SESSION['cart']) ? count($_SESSION['cart']) : 0;
 
 while ($rij = $stmt->fetch(PDO::FETCH_ASSOC)) {
-    // Gebruik htmlspecialchars voor veilige weergave
     $name = htmlspecialchars($rij['name'], ENT_QUOTES, 'UTF-8');
     $price = htmlspecialchars($rij['price'], ENT_QUOTES, 'UTF-8');
 
@@ -24,7 +18,7 @@ while ($rij = $stmt->fetch(PDO::FETCH_ASSOC)) {
     <div class='product-card'>
         <h3 class='product-name'>$name</h3>
         <p class='product-price'>€$price</p>
-        <form action='winkelmandje.php' method='POST'>
+        <form action='shoppingcart.php' method='POST'>
             <input type='hidden' name='name' value='$name'>
             <input type='hidden' name='price' value='$price'>
             <input type='hidden' name='action' value='add'>
@@ -39,7 +33,6 @@ while ($rij = $stmt->fetch(PDO::FETCH_ASSOC)) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        /* CSS-stijlen blijven hetzelfde */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -165,9 +158,9 @@ while ($rij = $stmt->fetch(PDO::FETCH_ASSOC)) {
     <div class="header">
         <h1>Menukaart</h1>
         <div class="buttons">
-            <a href="inlogpagina.php">Inloggen</a>
-            <a href="registratie.php">Registreren</a>
-            <a href="winkelmandje.php" class="cart-icon">
+            <a href="loginpage.php">Inloggen</a>
+            <a href="register.php">Registreren</a>
+            <a href="shoppingcart.php" class="cart-icon">
                 <i class="fas fa-shopping-cart"></i>
                 <?php if ($cart_count > 0): ?>
                     <span class="cart-count"><?php echo $cart_count; ?></span>

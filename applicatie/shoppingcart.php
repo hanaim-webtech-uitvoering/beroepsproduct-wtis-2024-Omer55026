@@ -1,34 +1,26 @@
 <?php
 session_start();
 
-// Initialize the shopping cart if it doesn't exist
 if (!isset($_SESSION['cart'])) {
     $_SESSION['cart'] = [];
 }
 
-// Check if the form was submitted to add a product
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add') {
-    // Get the product details from the form
     $product = [
         'name' => htmlspecialchars(trim($_POST['name'])),
-        'price' => floatval(trim($_POST['price'])) // Ensure price is a float
+        'price' => floatval(trim($_POST['price']))
     ];
-
-    // Add the product to the cart
     $_SESSION['cart'][] = $product;
 }
 
-// Check if a request to remove a product was made
 if (isset($_GET['remove'])) {
     $removeIndex = intval($_GET['remove']);
     if (isset($_SESSION['cart'][$removeIndex])) {
         unset($_SESSION['cart'][$removeIndex]);
-        // Reset keys after removal
         $_SESSION['cart'] = array_values($_SESSION['cart']);
     }
 }
 
-// Function to calculate the total price
 function calculateTotal($cart) {
     $total = 0;
     foreach ($cart as $item) {
@@ -37,7 +29,6 @@ function calculateTotal($cart) {
     return $total;
 }
 
-// Calculate total price
 $totalPrice = calculateTotal($_SESSION['cart']);
 ?>
 
@@ -162,7 +153,7 @@ $totalPrice = calculateTotal($_SESSION['cart']);
                 </div>
             <?php endforeach; ?>
             <div class="total">Totaal: €<?php echo number_format($totalPrice, 2); ?></div>
-            <a href="inlogpagina.php" class="checkout-button">Afrekenen</a>
+            <a href="loginpage.php" class="checkout-button">Afrekenen</a>
         <?php endif; ?>
     </div>
 </body>

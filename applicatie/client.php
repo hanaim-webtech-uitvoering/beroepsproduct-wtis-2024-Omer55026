@@ -1,17 +1,12 @@
 <?php
 session_start();
 require_once 'db_connectie.php';
-
-// Maak verbinding met de database
 $db = maakVerbinding();
 
-// Haal alle producten op zonder de 'image' kolom
 $query = 'SELECT p.name, p.price, p.type_id FROM Product p'; 
 $data = $db->query($query);
 
 $product_cards = '';
-
-// Tel het aantal producten in het winkelmandje
 $cart_count = isset($_SESSION['cart']) ? count($_SESSION['cart']) : 0;
 
 while ($rij = $data->fetch(PDO::FETCH_ASSOC)) {
@@ -19,7 +14,6 @@ while ($rij = $data->fetch(PDO::FETCH_ASSOC)) {
     $price = htmlspecialchars($rij['price']);
     $type_id = htmlspecialchars($rij['type_id']);
 
-    // Haal de ingrediënten voor dit product op
     $ingredients_query = $db->prepare("
         SELECT i.name 
         FROM Ingredient i 
@@ -29,7 +23,6 @@ while ($rij = $data->fetch(PDO::FETCH_ASSOC)) {
     $ingredients_query->execute(['product_name' => $name]);
     $ingredients = $ingredients_query->fetchAll(PDO::FETCH_COLUMN);
 
-    // Maak een lijst van ingrediënten
     $ingredients_list = implode(', ', array_map('htmlspecialchars', $ingredients));
 
     $product_cards .= "
@@ -45,7 +38,6 @@ while ($rij = $data->fetch(PDO::FETCH_ASSOC)) {
     </div>";
 }
 
-// Voeg item toe aan de bestelling
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['item_id'])) {
     $item_ids = isset($_SESSION['order_items']) ? $_SESSION['order_items'] : [];
     
@@ -56,7 +48,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['item_id'])) {
     $_SESSION['order_items'] = $item_ids;
 }
 
-// Bestelling bevestigen
 if (isset($_POST['confirm_order'])) {
     $username = $_SESSION['username'];
     $full_name = htmlspecialchars($_SESSION['first_name'] . ' ' . $_SESSION['last_name']);
@@ -81,13 +72,10 @@ if (isset($_POST['confirm_order'])) {
         exit;
     }
 
-    // Get the last inserted order ID
     $order_id = $db->lastInsertId();
 
-    // Insert products into Pizza_Order_Product met hoeveelheden
     foreach ($_SESSION['order_items'] as $item_name) {
-        // Haal de hoeveelheid op uit de POST-gegevens
-        $quantity = isset($_POST['quantity'][$item_name]) ? (int)$_POST['quantity'][$item_name] : 1; // Standaard naar 1
+        $quantity = isset($_POST['quantity'][$item_name]) ? (int)$_POST['quantity'][$item_name] : 1;
         $stmt = $db->prepare("INSERT INTO Pizza_Order_Product (order_id, product_name, quantity) VALUES (:order_id, :product_name, :quantity)");
         $stmt->execute([
             'order_id' => $order_id,
@@ -96,14 +84,12 @@ if (isset($_POST['confirm_order'])) {
         ]);
     }
 
-    // Leeg de sessievariabelen
     unset($_SESSION['order_items']); 
-    unset($_SESSION['order_quantities']); // Clear the quantities from session
-    header('Location: ingelogdklant.php');
+    unset($_SESSION['order_quantities']);
+    header('Location: client.php');
     exit;
 }
 
-// Verwijder item uit de bestelling
 if (isset($_POST['remove_item_id'])) {
     $item_ids = isset($_SESSION['order_items']) ? $_SESSION['order_items'] : [];
     $item_ids = array_filter($item_ids, function($id) {
@@ -112,11 +98,9 @@ if (isset($_POST['remove_item_id'])) {
     $_SESSION['order_items'] = array_values($item_ids);
 }
 
-// Haal de naam en achternaam van de ingelogde gebruiker
 $full_name = isset($_SESSION['first_name']) && isset($_SESSION['last_name']) ? 
     htmlspecialchars($_SESSION['first_name'] . ' ' . $_SESSION['last_name']) : 'Gast';
 
-// Haal bestelgeschiedenis op
 class OrderHistory {
     private $db;
     private $username;
@@ -163,7 +147,6 @@ $orders = $orderHistory->getOrders();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -358,8 +341,6 @@ $orders = $orderHistory->getOrders();
             <?php endif; ?>
         </form>
     </div>
-
-    <!-- Bestelgeschiedenis sectie -->
     <div class="order-history">
         <h2>Bestelgeschiedenis</h2>
         <?php if ($orders): ?>
@@ -383,7 +364,6 @@ $orders = $orderHistory->getOrders();
                             <td>
                                 <ul>
                                     <?php
-                                    // Haal de producten voor deze bestelling op
                                     $order_id = $order['order_id'];
                                     $products = $orderHistory->getOrderProducts($order_id);
                                     foreach ($products as $product):

@@ -12,36 +12,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($user) {
-        // Log de wachtwoord-informatie voor debugging
         error_log("User found: $username");
         error_log("Stored password: " . $user['password']);
         
         if ($password === $user['password']) {
-            // Platte tekst wachtwoord is correct
             $_SESSION['username'] = $username;
             $_SESSION['first_name'] = $user['first_name'];
             $_SESSION['last_name'] = $user['last_name'];
             $_SESSION['role'] = $user['role'];
 
-            // Redirect op basis van rol
             if ($user['role'] === 'Client') {
-                header('Location: ingelogdklant.php'); // Verwijs naar de klantpagina
+                header('Location: client.php');
             } elseif ($user['role'] === 'Personnel') {
-                header('Location: ingelogdpersoneel.php'); // Verwijs naar de personeelpagina
+                header('Location: employee.php');
             }
             exit;
         } elseif (password_verify($password, $user['password'])) {
-            // Gehasht wachtwoord is correct
             $_SESSION['username'] = $username;
             $_SESSION['first_name'] = $user['first_name'];
             $_SESSION['last_name'] = $user['last_name'];
             $_SESSION['role'] = $user['role'];
 
-            // Redirect op basis van rol
             if ($user['role'] === 'Client') {
-                header('Location: ingelogdklant.php'); // Verwijs naar de klantpagina
+                header('Location: client.php');
             } elseif ($user['role'] === 'Personnel') {
-                header('Location: ingelogdpersoneel.php'); // Verwijs naar de personeelpagina
+                header('Location: employee.php');
             }
             exit;
         } else {

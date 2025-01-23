@@ -8,16 +8,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $first_name = trim($_POST['first_name']);
     $last_name = trim($_POST['last_name']);
     $address = trim($_POST['address']);
-    $accept_terms = isset($_POST['accept_terms']); // Vinkknop voor voorwaarden
-    $role = 'Client'; // Standaard rol is Client
+    $accept_terms = isset($_POST['accept_terms']);
+    $role = 'Client';
 
-    // Validatie
     $errors = [];
     if (empty($username) || empty($password) || empty($first_name) || empty($last_name)) {
         $errors[] = 'Vul alle verplichte velden in.';
     }
 
-    // Controleer of de gebruikersnaam al bestaat
     $db = maakVerbinding();
     $stmt = $db->prepare('SELECT COUNT(*) FROM [User] WHERE username = :username');
     $stmt->execute(['username' => $username]);
@@ -25,7 +23,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Gebruikersnaam is al in gebruik.';
     }
 
-    // Controleer of de voorwaarden zijn geaccepteerd
     if (!$accept_terms) {
         $errors[] = 'Je moet de algemene privacyvoorwaarden accepteren.';
     }
@@ -42,9 +39,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'role' => $role   
         ]);
 
-        // Succesbericht met link naar inlogpagina
-        $_SESSION['success_message'] = 'Gebruiker succesvol aangemaakt! Je kunt nu inloggen: <a href="inlogpagina.php">Inloggen</a>';
-        header('Location: registratie.php');
+        $_SESSION['success_message'] = 'Gebruiker succesvol aangemaakt! Je kunt nu inloggen: <a href="loginpage.php">Inloggen</a>';
+        header('Location: register.php');
         exit;
     }
 }
@@ -73,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: white;
             text-align: center;
             font-size: 2em;
-            margin-bottom: 20px; /* Ruimte tussen de banner en de registratiecontainer */
+            margin-bottom: 20px; 
         }
         .registration-container {
             max-width: 600px;
@@ -82,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             padding: 20px;
             border-radius: 5px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            flex-grow: 1; /* Zorg ervoor dat de container de beschikbare ruimte opvult */
+            flex-grow: 1; 
         }
         .registration-container h2 {
             margin-bottom: 20px;
@@ -96,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .success {
             color: green;
             text-align: center;
-            margin-bottom: 20px; /* Ruimte onder het succesbericht */
+            margin-bottom: 20px;
         }
         input[type="text"], input[type="password"] {
             width: 100%;
@@ -178,7 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <a href="#">Wie zijn wij</a>
             <a href="#">Vacatures</a>
             <a href="#">Betalen</a>
-            <a href="#">Voorwaarden</a>
+            <a href="privacy.php">Voorwaarden</a>
         </div>
         &copy; 2025 Pizzeria Sole Machina. Alle rechten voorbehouden.
     </div>

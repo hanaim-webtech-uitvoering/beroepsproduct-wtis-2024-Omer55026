@@ -27,14 +27,12 @@ if ($search_query !== '') {
     $stmt->execute(['search' => $search_query]);
     $active_orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } else {
-    // Als er geen zoekopdracht is, haal dan alle actieve bestellingen op
     $active_orders = $db->query("
         SELECT o.order_id, o.client_name, o.datetime, o.status, o.address
         FROM Pizza_Order o
     ")->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// Verwerk statuswijziging van een bestelling
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['order_id'])) {
     $order_id = $_POST['order_id'];
     $new_status = $_POST['status'];
@@ -42,11 +40,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['order_id'])) {
     $stmt = $db->prepare("UPDATE Pizza_Order SET status = :status WHERE order_id = :id");
     $stmt->execute(['status' => $new_status, 'id' => $order_id]);
 
-    header('Location: ingelogdpersoneel.php'); // Herlaad de pagina na statuswijziging
+    header('Location: employee.php');
     exit;
 }
 
-// Haal de producten op voor de bestellingen
 $order_products = [];
 foreach ($active_orders as $order) {
     $stmt = $db->prepare("SELECT product_name, quantity FROM Pizza_Order_Product WHERE order_id = :order_id");
@@ -114,7 +111,7 @@ foreach ($active_orders as $order) {
             background: #fff;
             border-radius: 5px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            width: calc(100% - 40px); /* Full width minus margins */
+            width: calc(100% - 40px); 
         }
         table {
             width: 100%;
